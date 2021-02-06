@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   core:
-    image: gcr.io/kf-feast/feast-core:${FEAST_VERSION}
+    image: feastdev/feast-core:${FEAST_VERSION}
     volumes:
       - ${FEAST_CORE_CONFIG}:/etc/feast/application.yml
     environment:
@@ -19,7 +19,7 @@ services:
       - --spring.config.location=classpath:/application.yml,file:/etc/feast/application.yml
 
   jobservice:
-    image: gcr.io/kf-feast/feast-jobservice:${FEAST_VERSION}
+    image: feastdev/feast-jobservice:${FEAST_VERSION}
     depends_on:
       - core
     ports:
@@ -42,7 +42,7 @@ services:
       FEAST_STATSD_PORT: 9125
 
   jupyter:
-    image: gcr.io/kf-feast/feast-jupyter:${FEAST_VERSION}
+    image: feastdev/feast-jupyter:${FEAST_VERSION}
     volumes:
       - ${GCP_SERVICE_ACCOUNT}:/etc/gcloud/service-accounts/key.json
       - $PWD:/shared
@@ -91,7 +91,7 @@ services:
       - "5432:5432"
 
   online_serving:
-    image: gcr.io/kf-feast/feast-serving:${FEAST_VERSION}
+    image: feastdev/feast-serving:${FEAST_VERSION}
     volumes:
       - ${FEAST_ONLINE_SERVING_CONFIG}:/etc/feast/application.yml
     depends_on:
