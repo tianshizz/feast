@@ -272,12 +272,7 @@ class FeatureTable:
             name=feature_table_proto.spec.name,
             entities=[entity for entity in feature_table_proto.spec.entities],
             features=[
-                Feature(
-                    name=feature.name,
-                    dtype=ValueType(feature.value_type),
-                    labels=feature.labels,
-                )
-                for feature in feature_table_proto.spec.features
+                Feature.from_proto(feature) for feature in feature_table_proto.spec.features
             ],
             labels=feature_table_proto.spec.labels,
             max_age=(
@@ -311,28 +306,7 @@ class FeatureTable:
             last_updated_timestamp=self.last_updated_timestamp,
         )
 
-        spec = FeatureTableSpecProto(
-            name=self.name,
-            entities=self.entities,
-            features=[
-                feature.to_proto() if type(feature) == Feature else feature
-                for feature in self.features
-            ],
-            labels=self.labels,
-            max_age=self.max_age,
-            batch_source=(
-                self.batch_source.to_proto()
-                if issubclass(type(self.batch_source), DataSource)
-                else self.batch_source
-            ),
-            stream_source=(
-                self.stream_source.to_proto()
-                if issubclass(type(self.stream_source), DataSource)
-                else self.stream_source
-            ),
-        )
-
-        return FeatureTableProto(spec=spec, meta=meta)
+        return FeatureTableProto(spec=self.to_spec_proto(), meta=meta)
 
     def to_spec_proto(self) -> FeatureTableSpecProto:
         """
@@ -347,8 +321,7 @@ class FeatureTable:
             name=self.name,
             entities=self.entities,
             features=[
-                feature.to_proto() if type(feature) == Feature else feature
-                for feature in self.features
+                feature.to_proto() for feature in self.features
             ],
             labels=self.labels,
             max_age=self.max_age,

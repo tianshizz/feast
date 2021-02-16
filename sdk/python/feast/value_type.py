@@ -37,6 +37,7 @@ class ValueType(enum.Enum):
     DOUBLE_LIST = 15
     FLOAT_LIST = 16
     BOOL_LIST = 17
+    SQL = 100
 
     def to_tfx_schema_feature_type(self):
         if self.value in [
@@ -50,6 +51,7 @@ class ValueType(enum.Enum):
             ValueType.DOUBLE_LIST.value,
             ValueType.FLOAT_LIST.value,
             ValueType.BOOL_LIST.value,
+            ValueType.SQL.value,
         ]:
             return schema_pb2.FeatureType.BYTES
         elif self.value in [ValueType.INT32.value, ValueType.INT64.value]:

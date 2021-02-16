@@ -39,6 +39,7 @@ message ValueType {
     DOUBLE_LIST = 15;
     FLOAT_LIST = 16;
     BOOL_LIST = 17;
+    SQL = 100;
   }
 }
 
@@ -60,6 +61,7 @@ message Value {
     DoubleList double_list_val = 15;
     FloatList float_list_val = 16;
     BoolList bool_list_val = 17;
+    string sql_val = 100;
   }
 }
 

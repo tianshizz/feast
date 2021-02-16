@@ -516,6 +516,8 @@ class Client:
                 self._apply_entity(project, obj)  # type: ignore
             elif isinstance(obj, FeatureTable):
                 self._apply_feature_table(project, obj)  # type: ignore
+            elif isinstance(obj, ComposeFeature):
+                self._apply_compose_feature(project, obj)
             else:
                 raise ValueError(
                     f"Could not determine object type to apply {obj} with type {type(obj)}. Type must be Entity or FeatureTable."

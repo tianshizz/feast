@@ -15,6 +15,9 @@
 from typing import List, MutableMapping, Optional
 
 from feast.core.Feature_pb2 import FeatureSpecV2 as FeatureSpecProto
+from feast.core.FeatureTable_pb2 import FeatureTable as FeatureTableProto
+from feast.core.FeatureTable_pb2 import FeatureTableMeta as FeatureTableMetaProto
+from feast.core.FeatureTable_pb2 import FeatureTableSpec as FeatureTableSpecProto
 from feast.serving.ServingService_pb2 import FeatureReferenceV2 as FeatureRefProto
 from feast.types import Value_pb2 as ValueTypeProto
 from feast.value_type import ValueType
@@ -89,13 +92,16 @@ class Feature:
             Feature object
         """
 
-        feature = cls(
-            name=feature_proto.name,
-            dtype=ValueType(feature_proto.value_type),
-            labels=feature_proto.labels,
-        )
+        data_type = ValueType(feature_proto.value_type)
 
-        return feature
+        if data_type == ValueType.SQL:
+            return SQLFeature.from_proto(feature_proto)
+        else:
+            return  cls(
+                name=feature_proto.name,
+                dtype=ValueType(feature_proto.value_type),
+                labels=feature_proto.labels,
+            )
 
 
 class FeatureRef:
@@ -172,3 +178,40 @@ def _build_feature_references(feature_ref_strs: List[str]) -> List[FeatureRefPro
     feature_ref_protos = [ref.to_proto() for ref in feature_refs]
 
     return feature_ref_protos
+
+
+class SQLFeature(Feature):
+    def __init__(self, name: str, query: str, labels: Optional[MutableMapping[str, str]] = None,):
+        super().__init__(name, ValueType.SQL, labels)
+        self._query = query
+
+    @property
+    def query(self):
+        """
+        Getter for query of this field
+        """
+        return self._query
+
+    def to_proto(self) -> FeatureSpecProto:
+        """Converts Feature object to its Protocol Buffer representation"""
+        value_type = ValueTypeProto.ValueType.Enum.Value(self.dtype.name)
+
+        return FeatureSpecProto(
+            name=self.name, value_type=value_type, labels=self.labels, query=self.query,
+        )
+
+    @classmethod
+    def from_proto(cls, feature_proto: FeatureSpecProto):
+        """
+        Args:
+            feature_proto: FeatureSpecV2 protobuf object
+
+        Returns:
+            Feature object
+        """
+
+        return cls(
+            name=feature_proto.name,
+            labels=feature_proto.labels,
+            query=feature_proto.query,
+        )
