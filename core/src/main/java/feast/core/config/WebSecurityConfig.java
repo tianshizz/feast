@@ -47,12 +47,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
    */
   @Override
   protected void configure(HttpSecurity http) throws Exception {
-    List<String> matchersToBypass = new ArrayList<>(List.of("/actuator/**", "/metrics/**"));
-
-    if (feastProperties.securityProperties().isDisableRestControllerAuth()) {
-      matchersToBypass.add("/api/v1/**");
-      matchersToBypass.add("/api/v2/**");
-    }
+    List<String> matchersToBypass =
+        new ArrayList<>(List.of("/actuator/**", "/metrics/**", "/api/v1/**", "/api/v2/**"));
 
     // Bypasses security/authentication for the following paths
     http.authorizeRequests()

@@ -33,11 +33,6 @@ build: protos build-java build-docker build-html
 
 install-ci-dependencies: install-python-ci-dependencies install-go-ci-dependencies install-java-ci-dependencies
 
-# Java
-
-install-java-ci-dependencies:
-	${MVN} verify clean --fail-never
-
 format-java:
 	${MVN} spotless:apply
 
@@ -62,16 +57,16 @@ build-java-no-tests:
 # Python SDK
 
 install-python-ci-dependencies:
-	pip install --no-cache-dir -r sdk/python/requirements-ci.txt
+	pip3 install --no-cache-dir -r sdk/python/requirements-ci.txt
 
-compile-protos-python: install-python-ci-dependencies
-	@$(foreach dir,$(PROTO_TYPE_SUBDIRS),cd ${ROOT_DIR}/protos; python -m grpc_tools.protoc -I. --python_out=../sdk/python/ --mypy_out=../sdk/python/ feast/$(dir)/*.proto;)
-	@$(foreach dir,$(PROTO_SERVICE_SUBDIRS),cd ${ROOT_DIR}/protos; python -m grpc_tools.protoc -I. --grpc_python_out=../sdk/python/ feast/$(dir)/*.proto;)
-	cd ${ROOT_DIR}/protos; python -m grpc_tools.protoc -I. --python_out=../sdk/python/ --mypy_out=../sdk/python/ tensorflow_metadata/proto/v0/*.proto
-	cd ${ROOT_DIR}/protos; python -m grpc_tools.protoc -I. --python_out=../sdk/python/ --grpc_python_out=../sdk/python/ --mypy_out=../sdk/python/ feast/third_party/grpc/health/v1/*.proto
+compile-protos-python:
+	@$(foreach dir,$(PROTO_TYPE_SUBDIRS),cd ${ROOT_DIR}/protos; python3 -m grpc_tools.protoc -I. --python_out=../sdk/python/ --mypy_out=../sdk/python/ feast/$(dir)/*.proto;)
+	@$(foreach dir,$(PROTO_SERVICE_SUBDIRS),cd ${ROOT_DIR}/protos; python3 -m grpc_tools.protoc -I. --grpc_python_out=../sdk/python/ feast/$(dir)/*.proto;)
+	cd ${ROOT_DIR}/protos; python3 -m grpc_tools.protoc -I. --python_out=../sdk/python/ --mypy_out=../sdk/python/ tensorflow_metadata/proto/v0/*.proto
+	cd ${ROOT_DIR}/protos; python3 -m grpc_tools.protoc -I. --python_out=../sdk/python/ --grpc_python_out=../sdk/python/ --mypy_out=../sdk/python/ feast/third_party/grpc/health/v1/*.proto
 
 install-python: compile-protos-python
-	python -m pip install -e sdk/python
+	sudo python3 -m pip install -e sdk/python -i http://pypi.douban.com/simple/ --trusted-host pypi.douban.com
 
 test-python:
 	FEAST_TELEMETRY=False pytest --verbose --color=yes sdk/python/tests

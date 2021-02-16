@@ -25,7 +25,7 @@ services:
     ports:
       - 6568:6568
     volumes:
-      - $PWD:/shared
+      - ./data:/shared
     environment:
       FEAST_CORE_URL: core:6565
       FEAST_SERVING_URL: online_serving:6566
@@ -45,7 +45,7 @@ services:
     image: feastdev/feast-jupyter:${FEAST_VERSION}
     volumes:
       - ${GCP_SERVICE_ACCOUNT}:/etc/gcloud/service-accounts/key.json
-      - $PWD:/shared
+      - ./data:/shared
     depends_on:
       - core
     environment:

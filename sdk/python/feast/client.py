@@ -368,14 +368,6 @@ class Client:
             "core": "not configured",
         }
 
-        if self.serving_url:
-            serving_version = self._serving_service.GetFeastServingInfo(
-                GetFeastServingInfoRequest(),
-                timeout=self._config.getint(opt.GRPC_CONNECTION_TIMEOUT),
-                metadata=self._get_grpc_metadata(),
-            ).version
-            result["serving"] = {"url": self.serving_url, "version": serving_version}
-
         if self.core_url:
             core_version = self._core_service.GetFeastCoreVersion(
                 GetFeastCoreVersionRequest(),
