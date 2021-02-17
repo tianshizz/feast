@@ -54,13 +54,19 @@ public class FeatureV2 {
   @Column(name = "labels", columnDefinition = "text")
   private String labelsJSON;
 
+  // User defined metadata labels for this feature encoded a JSON string.
+  @Column(name = "query", columnDefinition = "text")
+  private String query;
+
   public FeatureV2() {};
 
-  public FeatureV2(FeatureTable table, String name, ValueType.Enum type, String labelsJSON) {
+  public FeatureV2(
+      FeatureTable table, String name, ValueType.Enum type, String labelsJSON, String query) {
     this.featureTable = table;
     this.name = name;
     this.type = type;
     this.labelsJSON = labelsJSON;
+    this.query = query;
   }
 
   /**
@@ -72,15 +78,18 @@ public class FeatureV2 {
    */
   public static FeatureV2 fromProto(FeatureTable table, FeatureSpecV2 spec) {
     String labelsJSON = TypeConversion.convertMapToJsonString(spec.getLabelsMap());
-    return new FeatureV2(table, spec.getName(), spec.getValueType(), labelsJSON);
+    return new FeatureV2(table, spec.getName(), spec.getValueType(), labelsJSON, spec.getQuery());
   }
 
   /** Convert this Feature to its Protobuf representation. */
   public FeatureSpecV2 toProto() {
     Map<String, String> labels = TypeConversion.convertJsonStringToMap(getLabelsJSON());
+    String query = getQuery();
+    query = query == null ? "" : query;
     return FeatureSpecV2.newBuilder()
         .setName(getName())
         .setValueType(getType())
+        .setQuery(query)
         .putAllLabels(labels)
         .build();
   }

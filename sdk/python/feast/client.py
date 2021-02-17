@@ -14,6 +14,7 @@
 import logging
 import multiprocessing
 import os
+import psycopg2
 import shutil
 import uuid
 import warnings
@@ -109,6 +110,8 @@ _logger = logging.getLogger(__name__)
 CPU_COUNT: int = multiprocessing.cpu_count()
 
 warnings.simplefilter("once", DeprecationWarning)
+
+CONN_STR: str = "host=localhost port=5433 dbname=postgres user=postgres password=password"
 
 
 class Client:
@@ -475,6 +478,12 @@ class Client:
         if self._project == project:
             self._project = opt().PROJECT
 
+    def sample(self, file_path, size):
+        filename, file_ext = os.path.splitext(file_path)
+        if '.csv' in file_ext:
+            return pd.read_csv(file_path).head(size)
+        return None
+
     def apply(
         self,
         objects: Union[List[Union[Entity, FeatureTable]], Entity, FeatureTable],
@@ -516,8 +525,6 @@ class Client:
                 self._apply_entity(project, obj)  # type: ignore
             elif isinstance(obj, FeatureTable):
                 self._apply_feature_table(project, obj)  # type: ignore
-            elif isinstance(obj, ComposeFeature):
-                self._apply_compose_feature(project, obj)
             else:
                 raise ValueError(
                     f"Could not determine object type to apply {obj} with type {type(obj)}. Type must be Entity or FeatureTable."
@@ -815,6 +822,105 @@ class Client:
             features_dict[feature_ref] = feature
 
         return features_dict
+
+    def get_offline(self, feature_table: FeatureTable, source: pd.DataFrame) -> pd.DataFrame:
+        if source.empty:
+            return pd.DataFrame()
+
+        conn=psycopg2.connect(CONN_STR)
+
+        table_name = feature_table.name + str(int(datetime.now().timestamp()))
+        
+        feature_values = {}
+        sorted_df = source.sort_values(by='ts')
+
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""DROP TABLE IF EXISTS {table_name};""")
+                # TODO: infer table schema from source dtypes
+                cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name}(driver_id bigint, amount decimal, distance integer, ts timestamp);""")
+                for item in sorted_df.itertuples():
+                    driver_id = item[1]
+                    ts = item[2]
+                    amount = item[3]
+                    distance = item[4]
+                    cur.execute(f"""INSERT INTO {table_name} VALUES({driver_id}, {amount}, {distance}, '{ts}')""")
+
+                    for feature in feature_table.features:
+                        cur.execute(feature.query.replace(f"""from {feature_table.name}""", f"""from {table_name}""") + " order by ts, driver_id")
+                        if feature.name not in feature_values:
+                            feature_values[feature.name] = []
+                        last = None
+                        for r in cur:
+                            if r[0] == driver_id:
+                                last = r[1:]
+                        feature_values[feature.name].append(last)
+                cur.execute(f"""DROP TABLE IF EXISTS {table_name};""")
+        
+        index = len(sorted_df.columns)
+        for key in feature_values:
+            fv = feature_values[key]
+            sorted_df.insert(index, key, fv)
+            index += 1
+        return sorted_df
+
+    def offline_to_online(self, feature_table: FeatureTable, data: pd.DataFrame) -> pd.DataFrame:
+        conn=psycopg2.connect(CONN_STR)
+
+        table_name = feature_table.name + '_features'
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""DROP TABLE IF EXISTS {table_name};""")
+                # TODO: infer table schema from source dtypes
+                sql = f"""CREATE TABLE IF NOT EXISTS {table_name}(driver_id bigint, amount decimal, distance integer, ts timestamp"""
+                for feature in feature_table.features:
+                    sql += f""", {feature.name} text[]"""
+                sql += ');'
+                cur.execute(sql)
+
+                for item in data.itertuples():
+                    driver_id = item[1]
+                    ts = item[2]
+                    amount = item[3]
+                    distance = item[4]
+                    sql = f"""INSERT INTO {table_name} VALUES({driver_id}, {amount}, {distance}, '{ts}'"""
+                    idx = 5
+                    params = []
+                    for feature in feature_table.features:
+                        sql += f""", %s"""
+                        if not isinstance(item[idx], list):
+                            params.append(list(item[idx]))
+                        else:
+                            params.append(item[idx])
+                        idx += 1
+                    sql += ');'
+                    cur.execute(sql, params)
+        return data
+
+    def get_online(self, feature_table: FeatureTable, entities: dict) -> pd.DataFrame:
+        conn=psycopg2.connect(CONN_STR)
+
+        table_name = feature_table.name + '_features'
+        key = list(entities.keys())[0]
+        if key not in feature_table.entities:
+            return pd.DataFrame()
+        resp = {}
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    sql = f"""select * from {table_name} where {key} in ("""
+                    for v in entities[key]:
+                        sql += f"""{v}, """
+                    sql = sql[:-2] + ') order by ts desc;'
+                    print(sql)
+                    cur.execute(sql)
+                    
+                    for r in cur:
+                        if r[0] not in resp:
+                            resp[r[0]] = r
+            return pd.DataFrame(data=list(resp.values()), columns=['driver_id', 'amount', 'distance', 'ts'] + [feature.name for feature in feature_table.features])
+        except:
+            return pd.DataFrame()
 
     def ingest(
         self,

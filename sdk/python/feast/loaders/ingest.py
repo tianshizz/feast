@@ -148,7 +148,7 @@ def _read_table_from_source(
         if ".csv" in file_ext:
             from pyarrow import csv
 
-            table = csv.read_csv(filename)
+            table = csv.read_csv(file_path)
         elif ".json" in file_ext:
             from pyarrow import json
 

@@ -1,0 +1,1 @@
+ALTER TABLE features_v2 ADD COLUMN query character varying(1000) default '';
