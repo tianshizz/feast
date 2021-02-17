@@ -847,7 +847,7 @@ class Client:
                     cur.execute(f"""INSERT INTO {table_name} VALUES({driver_id}, {amount}, {distance}, '{ts}')""")
 
                     for feature in feature_table.features:
-                        cur.execute(feature.query.replace(f"""from {feature_table.name}""", f"""from {table_name}""") + " order by ts, driver_id")
+                        cur.execute(feature.query.replace(f"""from {feature_table.name}""", f"""from {table_name}"""))
                         if feature.name not in feature_values:
                             feature_values[feature.name] = []
                         last = None
